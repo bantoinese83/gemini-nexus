@@ -87,8 +87,24 @@ export const mockFetchResponse = (data, status = 200) => {
     ok: status >= 200 && status < 300,
     json: () => Promise.resolve(data),
     text: () => Promise.resolve(JSON.stringify(data)),
-    headers: new Headers({
-      'Content-Type': 'application/json'
-    })
+    headers: {
+      get: (name) => name === 'Content-Type' ? 'application/json' : null
+    }
   });
 };
+
+// Add a test to prevent the "must contain at least one test" error
+describe('Mocks', () => {
+  it('creates mock Google GenAI client with expected methods', () => {
+    const mockClient = createMockGoogleGenAI();
+    expect(mockClient).toBeDefined();
+    expect(mockClient.models.get).toBeDefined();
+    expect(mockClient.models.list).toBeDefined();
+    expect(mockClient.files.upload).toBeDefined();
+  });
+  
+  it('creates mock fetch response', () => {
+    const response = mockFetchResponse({ test: true });
+    expect(response).toBeDefined();
+  });
+});
