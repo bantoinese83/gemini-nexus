@@ -1,0 +1,70 @@
+{
+  "name": "gemini-nexus",
+  "version": "0.1.0-alpha.3",
+  "description": "Comprehensive SDK for Google's Gemini API",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:client": "jest __tests__/client.test.ts",
+    "test:text": "jest __tests__/services/textGeneration.test.ts",
+    "test:chat": "jest __tests__/services/chat.test.ts",
+    "test:multimodal": "jest __tests__/services/multimodal.test.ts",
+    "test:file": "jest __tests__/services/fileService.test.ts",
+    "test:token": "jest __tests__/services/tokenCounter.test.ts",
+    "lint": "eslint . --ext .ts",
+    "prepare": "npm run build",
+    "version": "npm run lint && git add -A src",
+    "postversion": "git push && git push --tags"
+  },
+  "keywords": [
+    "gemini",
+    "google",
+    "ai",
+    "api",
+    "llm",
+    "generative",
+    "sdk",
+    "multimodal",
+    "image-generation",
+    "video-generation"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bantoinese83/gemini-nexus.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bantoinese83/gemini-nexus/issues"
+  },
+  "homepage": "https://github.com/bantoinese83/gemini-nexus#readme",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.3",
+    "@types/node": "^20.4.5",
+    "@types/node-fetch": "^2.6.12",
+    "@typescript-eslint/eslint-plugin": "^6.2.0",
+    "@typescript-eslint/parser": "^6.2.0",
+    "eslint": "^8.45.0",
+    "jest": "^29.6.1",
+    "jest-fetch-mock": "^3.0.3",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.1.6"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

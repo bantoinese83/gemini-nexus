@@ -1,0 +1,74 @@
+# Source code
+src/
+
+# Tests
+__tests__/
+coverage/
+jest.config.js
+
+# Development files
+.github/
+.vscode/
+.gitignore
+.eslintrc.js
+.eslintignore
+tsconfig.json
+fix-error-handling.js
+fix-imports.js
+
+# Examples
+examples/
+
+# Documentation source
+docs/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor directories and files
+.idea/
+*.sublime-*
+*.swp
+.DS_Store
+
+# TypeScript config
+tsconfig.json
+
+# Test files
+*.test.ts
+jest.config.js
+
+# Development config files
+.prettierrc
+.github/
+.vscode/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Build artifacts
+.nyc_output/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.*
+
+# Build files
+build/
+dist/
+out/
+
+# Dependency directories
+node_modules/
+
+# Misc
+Thumbs.db 
