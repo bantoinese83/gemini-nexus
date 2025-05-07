@@ -639,15 +639,20 @@ The repository includes comprehensive examples for all features in the `/example
 - `gemini-2.5-flash.ts` - Examples for the Gemini 2.5 Flash model
 - `fileApi.ts` - File API usage examples
 - `functionCalling.ts` - Function calling for agentic use cases
+- `imageGeneration.ts` - Generate images from text prompts
+- `videoGeneration.ts` - Generate videos from text prompts or images
 - `imageUnderstanding.ts` - Image analysis and processing
 - `videoUnderstanding.ts` - Video analysis
 - `audioUnderstanding.ts` - Audio analysis and transcription
 - `documentUnderstanding.ts` - Document processing
 - `searchGrounding.ts` - Using Google Search for grounding
+- `structuredOutput.ts` - Generate structured JSON data
+- `codeExecution.ts` - Execute code and get results
+- `multimodal.ts` - Process multiple types of content together
 
 ## Current Status
 
-This SDK is currently in alpha (v0.1.0-alpha.4). Some features are implemented as stubs and will be expanded in future versions.
+This SDK is currently in alpha (v0.1.0-alpha.5). Some features are implemented as stubs and will be expanded in future versions.
 
 ## License
 
