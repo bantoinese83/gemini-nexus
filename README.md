@@ -647,7 +647,7 @@ The repository includes comprehensive examples for all features in the `/example
 
 ## Current Status
 
-This SDK is currently in alpha (v0.1.0-alpha.3). Some features are implemented as stubs and will be expanded in future versions.
+This SDK is currently in alpha (v0.1.0-alpha.4). Some features are implemented as stubs and will be expanded in future versions.
 
 ## License
 
