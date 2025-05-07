@@ -669,4 +669,4 @@ If you need help with using Gemini Nexus, here are some resources:
 - **Questions**: For questions about usage, you can [start a discussion](https://github.com/bantoinese83/gemini-nexus/discussions) on GitHub
 - **Contributing**: Contributions are welcome! Please read our [contributing guidelines](https://github.com/bantoinese83/gemini-nexus/blob/main/CONTRIBUTING.md) before submitting PRs
 
-For commercial support options or partnerships, please reach out via email at your.email@example.com. 
+For commercial support options or partnerships, please reach out via email at B.Antoine.SE@Gmail.com. 

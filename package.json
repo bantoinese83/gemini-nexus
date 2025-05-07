@@ -1,6 +1,6 @@
 {
   "name": "gemini-nexus",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "description": "Comprehensive SDK for Google's Gemini API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -38,7 +38,7 @@
     "image-generation",
     "video-generation"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "B.Antoine.SE@Gmail.com",
   "license": "MIT",
   "repository": {
     "type": "git",
