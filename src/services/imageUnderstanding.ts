@@ -1,4 +1,3 @@
-// Using stub implementation;
 import { 
   GenerationConfig, 
   GenerationResponse, 
@@ -8,6 +7,7 @@ import {
   SegmentedObject
 } from '../types';
 import * as fs from 'fs';
+import { GoogleGenAI } from "@google/genai";
 
 /**
  * Service for image understanding with Gemini models
@@ -259,7 +259,7 @@ export class ImageUnderstandingService {
       const responseText = response.response?.text() || '';
       
       return {
-        text: responseText,
+        text: responseText ?? '',
         raw: response
       };
     } catch (error) {
@@ -291,48 +291,43 @@ export class ImageUnderstandingService {
     config?: GenerationConfig
   ): Promise<GenerationResponse> {
     try {
-      const model = this.client.models.get(config?.model || this.defaultModel);
-      
-      // Read the image file
+      const ai = new GoogleGenAI({ apiKey: this.client.apiKey });
       const imageBuffer = fs.readFileSync(imagePath);
       const base64Image = imageBuffer.toString('base64');
-      const mimeType = this._getMimeType(imagePath);
-      
-      const response = await model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { 
-                inlineData: {
-                  mimeType,
-                  data: base64Image
-                }
-              },
-              { text: prompt }
-            ]
-          }
-        ],
-        ...(config && {
-          generationConfig: {
-            maxOutputTokens: config.maxOutputTokens,
-            temperature: config.temperature,
-            topK: config.topK,
-            topP: config.topP,
-            stopSequences: config.stopSequences,
-          },
-        }),
+      const contents = [
+        { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
+        { text: prompt }
+      ];
+      const response = await ai.models.generateContent({
+        model: config?.model || this.defaultModel,
+        contents,
       });
-
-      const responseText = response.response?.text() || '';
-      
-      return {
-        text: responseText,
-        raw: response
-      };
+      return { text: response.text ?? '', raw: response };
     } catch (error) {
       throw new Error(`Image analysis failed: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  /**
+   * Analyze image with automatic model/config selection
+   * @param imagePath - Path to the image file
+   * @param prompt - Custom prompt for analyzing the image
+   * @param config - Optional generation configuration
+   * @returns Promise with the analysis results
+   * @example
+   * ```typescript
+   * const response = await gemini.imageUnderstanding.analyzeImageAuto("/path/to/image.jpg", "Describe this image");
+   * console.log(response.text);
+   * ```
+   */
+  async analyzeImageAuto(
+    imagePath: string,
+    prompt: string,
+    config?: GenerationConfig
+  ): Promise<GenerationResponse> {
+    const isComplex = prompt.length > 300 || /\b(segment|detect|analyze|describe|qa|question|object|mask)\b/i.test(prompt);
+    const model = config?.model || (isComplex ? 'gemini-2.5-flash-preview-04-17' : this.defaultModel);
+    return this.analyzeImage(imagePath, prompt, { ...config, model });
   }
 
   /**

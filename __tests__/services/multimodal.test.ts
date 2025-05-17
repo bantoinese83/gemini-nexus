@@ -1,33 +1,5 @@
 import { MultimodalService } from '../../src/services/multimodal';
-import * as fs from 'fs';
-
-// Mock the GenerativeModel class
-const mockGenerateContent = jest.fn().mockResolvedValue({
-  response: {
-    candidates: [{ content: { parts: [{ text: 'Mock response' }] } }]
-  },
-  text: () => 'Mock response'
-});
-
-const mockGenerateContentStream = jest.fn().mockResolvedValue({
-  stream: (async function* () {
-    yield { text: 'Mock stream response part 1' };
-    yield { text: 'Mock stream response part 2' };
-  })()
-});
-
-const mockModel = {
-  generateContent: mockGenerateContent,
-  generateContentStream: mockGenerateContentStream
-};
-
-const mockGetModel = jest.fn().mockReturnValue(mockModel);
-
-// Setup mock for entire module
-jest.mock('@google/generative-ai', () => ({
-  GenerativeModel: jest.fn(),
-  __esModule: true
-}));
+const { __mocks__ } = require('@google/genai');
 
 // Mock fs.readFileSync to return fake file data
 jest.mock('fs', () => ({
@@ -38,12 +10,19 @@ jest.mock('fs', () => ({
 
 describe('MultimodalService', () => {
   let multimodal: MultimodalService;
-  
+  let mockClient: any;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    const mockClient = {
+    __mocks__.mockGenerateContent.mockReset();
+    __mocks__.mockGenerateContentStream.mockReset();
+    __mocks__.mockGenerateContent.mockImplementation(() => Promise.resolve({ text: 'Mock response', raw: {} }));
+    mockClient = {
       models: {
-        get: mockGetModel
+        get: jest.fn(() => ({
+          generateContent: __mocks__.mockGenerateContent,
+          generateContentStream: __mocks__.mockGenerateContentStream
+        }))
       },
       files: {
         upload: jest.fn().mockResolvedValue({
@@ -65,28 +44,57 @@ describe('MultimodalService', () => {
     });
 
     it('should handle errors in image-based generation', async () => {
-      mockGenerateContent.mockRejectedValue(new Error('Multimodal error'));
+      __mocks__.mockGenerateContent.mockRejectedValue(new Error('Multimodal error'));
       await expect(multimodal.generateFromImage('Describe this image', '/path/to/image.jpg')).rejects.toThrow('Multimodal error');
     });
   });
 
   describe('generateFromImageData', () => {
     it('should generate content from image data', async () => {
+      __mocks__.mockGenerateContent.mockImplementationOnce(() => Promise.resolve({
+        response: { text: () => 'Mock response' }
+      }));
       const response = await multimodal.generateFromImageData('Describe this image', 'base64data', 'image/jpeg');
       expect(response).toBeDefined();
       expect(response.text).toBe('Mock response');
     });
 
     it('should handle errors in image data generation', async () => {
-      mockGenerateContent.mockRejectedValue(new Error('Multimodal error'));
+      __mocks__.mockGenerateContent.mockRejectedValue(new Error('Multimodal error'));
       await expect(multimodal.generateFromImageData('Describe this image', 'base64data', 'image/jpeg')).rejects.toThrow('Multimodal error');
     });
   });
 
   describe('streamGenerateFromImage', () => {
     it('should stream generated content from image', async () => {
+      // Set up the mock before creating the service instance
+      const mockClient = {
+        models: {
+          get: jest.fn(() => ({
+            generateContent: __mocks__.mockGenerateContent,
+            generateContentStream: __mocks__.mockGenerateContentStream
+          }))
+        },
+        files: {
+          upload: jest.fn().mockResolvedValue({
+            name: 'files/mock-file-123',
+            uri: 'https://example.com/mock-file-123',
+            mimeType: 'image/jpeg',
+            state: 'ACTIVE'
+          })
+        }
+      };
+      __mocks__.mockGenerateContentStream.mockImplementationOnce(() => ({
+        stream: {
+          [Symbol.asyncIterator]: async function* () {
+            yield { text: 'Mock stream response part 1' };
+            yield { text: 'Mock stream response part 2' };
+          }
+        }
+      }));
+      const multimodal = new MultimodalService(mockClient as any);
       const stream = await multimodal.streamGenerateFromImage('Describe this image in detail', '/path/to/image.jpg');
-      const parts = [];
+      const parts: { text: string }[] = [];
       for await (const part of stream) {
         parts.push(part.text);
       }
@@ -94,7 +102,7 @@ describe('MultimodalService', () => {
     });
 
     it('should handle errors in stream image-based generation', async () => {
-      mockGenerateContentStream.mockRejectedValue(new Error('Stream multimodal error'));
+      __mocks__.mockGenerateContentStream.mockRejectedValue(new Error('Stream multimodal error'));
       await expect(multimodal.streamGenerateFromImage('Describe this image in detail', '/path/to/image.jpg')).rejects.toThrow('Stream multimodal error');
     });
   });

@@ -1,4 +1,4 @@
-// Using stub implementation;
+import { GoogleGenAI } from "@google/genai";
 import { UsageMetadata } from '../types';
 
 /**
@@ -36,14 +36,12 @@ export class TokenCounterService {
     modelName?: string
   ): Promise<{ totalTokens: number }> {
     try {
-      const model = modelName || this.defaultModel;
-      
-      const response = await this.client.models.countTokens({
-        model,
-        contents: text
+      const ai = new GoogleGenAI({ apiKey: this.client.apiKey });
+      const response = await ai.models.countTokens({
+        model: modelName || this.defaultModel,
+        contents: text,
       });
-      
-      return { totalTokens: response.totalTokens };
+      return { totalTokens: response.totalTokens ?? 0 };
     } catch (error) {
       throw new Error(`Token counting failed: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -88,7 +86,7 @@ export class TokenCounterService {
         contents: Array.isArray(content) ? content : [content]
       });
       
-      return { totalTokens: response.totalTokens };
+      return { totalTokens: response.totalTokens ?? 0 };
     } catch (error) {
       throw new Error(`Token counting failed: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -124,7 +122,7 @@ export class TokenCounterService {
         contents: chatHistory
       });
       
-      return { totalTokens: response.totalTokens };
+      return { totalTokens: response.totalTokens ?? 0 };
     } catch (error) {
       throw new Error(`Token counting failed: ${error instanceof Error ? error.message : String(error)}`);
     }

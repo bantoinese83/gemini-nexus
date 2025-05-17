@@ -1,14 +1,7 @@
 import GeminiClient from '../src';
-import { createMockGoogleGenAI } from './utils/mocks';
+import { __mocks__ as genaiMocks } from '@google/genai';
 
-// Directly mock the underlying module we import in our code
-jest.mock('@google/generative-ai', () => {
-  return {
-    GenerativeModel: jest.fn(),
-    // Mock constructor that provides our mock implementation
-    __esModule: true
-  };
-});
+const { mockGenerateContent, mockChatsCreate, mockCountTokens } = genaiMocks;
 
 // Note: We're not importing the module directly to avoid import errors
 // with node-fetch in the test environment
@@ -17,8 +10,15 @@ describe('GeminiClient', () => {
   let client: GeminiClient;
 
   beforeEach(() => {
-    // Clear mock calls before each test
     jest.clearAllMocks();
+    mockGenerateContent.mockReset();
+    mockChatsCreate.mockReset();
+    mockCountTokens.mockReset();
+    mockGenerateContent.mockResolvedValue({ text: 'Generated response for: Hello', raw: {} });
+    mockChatsCreate.mockReturnValue({
+      sendMessage: jest.fn().mockResolvedValue({ text: 'Mock chat response', raw: {} })
+    });
+    mockCountTokens.mockResolvedValue({ totalTokens: 42 });
     client = new GeminiClient('mock-api-key');
   });
 
@@ -73,6 +73,8 @@ describe('GeminiClient', () => {
 
   describe('textGeneration', () => {
     it('should generate text', async () => {
+      // Set up the mock for text generation
+      mockGenerateContent.mockResolvedValue({ text: 'Generated response for: Hello', raw: {} });
       const response = await client.textGeneration.generate('Hello');
       expect(response).toBeDefined();
       expect(response.text).toBe('Generated response for: Hello');
@@ -107,6 +109,8 @@ describe('GeminiClient', () => {
 
   describe('multimodal', () => {
     it('should generate content from image', async () => {
+      // Set up the mock for multimodal to match test expectation
+      mockGenerateContent.mockResolvedValue({ text: 'Mock response', raw: {} });
       const response = await client.multimodal.generateFromImage('Describe this image', '/path/to/image.jpg');
       expect(response).toBeDefined();
       expect(response.text).toBe('Mock response');

@@ -58,59 +58,66 @@ const imageResponse = await gemini.multimodal.generateFromImage(
 console.log(imageResponse.text);
 ```
 
-## Advanced Usage Examples
+## Modern Quickstart
 
-### Function Calling
+```typescript
+import { GeminiClient } from 'gemini-nexus';
+import { SchemaType } from 'gemini-nexus/types';
 
-```javascript
-import GeminiClient from 'gemini-nexus';
+async function quickstart() {
+  // Enable debug mode for all API calls
+  const gemini = new GeminiClient(process.env.GEMINI_API_KEY || 'YOUR_API_KEY', true);
 
-const gemini = new GeminiClient('YOUR_API_KEY');
+  // Suggest a model for a coding task
+  const bestModel = gemini.suggestModelForTask('code');
+  console.log('Suggested model for code:', bestModel);
 
-const functions = [
-  {
-    name: "getCurrentWeather",
-    description: "Get the current weather in a given location",
+  // Use the new auto text generation method
+  const autoText = await gemini.textGeneration.generateAuto('Explain the difference between TypeScript and JavaScript.');
+  console.log('Auto text generation:', autoText.text);
+
+  // Use the new auto function calling method
+  const weatherFn = {
+    name: 'get_weather',
+    description: 'Get the current weather for a city.',
     parameters: {
-      type: "object",
+      type: SchemaType.OBJECT,
       properties: {
-        location: {
-          type: "string",
-          description: "The city and state, e.g. San Francisco, CA"
-        },
-        unit: {
-          type: "string",
-          enum: ["celsius", "fahrenheit"],
-          description: "The unit of temperature"
-        }
+        city: { type: SchemaType.STRING, description: 'City name' }
       },
-      required: ["location"]
+      required: ['city']
     }
-  }
-];
+  };
+  const autoFunc = await gemini.functionCalling.generateAuto('What is the weather in Paris?', [weatherFn]);
+  console.log('Auto function calling:', autoFunc.text, autoFunc.functionCalls);
 
-const result = await gemini.functionCalling.generate(
-  "What's the weather like in New York?",
-  { functions }
-);
+  // Demonstrate file upload + wait (commented out for safety)
+  // const file = await gemini.files.uploadAndWait({ file: 'examples/data/sample.pdf', config: { mimeType: 'application/pdf' } });
+  // console.log('File uploaded and active:', file);
+}
 
-console.log(result.functionCalls);
+quickstart();
 ```
 
-### Search Grounding
+## Auto Methods for All Services
 
-```javascript
-import GeminiClient from 'gemini-nexus';
+All major services now provide an `auto` method that selects the best model/config for your task. These are the recommended entry point for most use cases.
 
-const gemini = new GeminiClient('YOUR_API_KEY');
+| Service                | Auto Method Example Script                | Usage Example |
+|------------------------|-------------------------------------------|--------------|
+| Text Generation        | `examples/text-auto.ts`                   | `await gemini.textGeneration.generateAuto('Summarize...')` |
+| Function Calling       | `examples/function-calling-auto.ts`       | `await gemini.functionCalling.generateAuto(prompt, [fn])` |
+| Document Understanding | `examples/document-auto.ts`               | `await gemini.documentUnderstanding.processDocumentAuto(prompt, filePart)` |
+| File Upload            | `examples/file-upload-auto.ts`            | `await gemini.files.uploadAndWait({ file, config })` |
+| Audio Understanding    | `examples/audio-auto.ts`                  | `await gemini.audioUnderstanding.analyzeAudioAuto(audioPath, prompt)` |
+| Video Understanding    | `examples/video-auto.ts`                  | `await gemini.videoUnderstanding.analyzeVideoAuto(videoPath, prompt)` |
+| Image Understanding    | `examples/image-auto.ts`                  | `await gemini.imageUnderstanding.analyzeImageAuto(imagePath, prompt)` |
+| Multimodal             | `examples/multimodal-auto.ts`             | `await gemini.multimodal.generateAuto(prompt, imagePath)` |
+| Structured Output      | `examples/structured-output-auto.ts`      | `await gemini.structuredOutput.generateAuto(prompt, schema)` |
+| Search Grounding       | `examples/search-grounding-auto.ts`       | `await gemini.searchGrounding.generateAuto(prompt)` |
+| Code Execution         | `examples/code-execution-auto.ts`         | `await gemini.codeExecution.executeAuto(prompt)` |
 
-const response = await gemini.searchGrounding.generate(
-  "Who won the most recent Super Bowl?"
-);
-
-console.log(response.text);
-console.log(response.groundingMetadata.webSearchQueries);
-```
+Each script is fully documented with JSDoc and ready to run with `ts-node`.
 
 ## Usage Examples
 
@@ -581,60 +588,22 @@ const response = await gemini.thinking.generateWithInternalThinking(
 console.log("Response:", response.text);
 ```
 
-## Documentation
-
-For detailed documentation on all features, please visit:
-
-- [Models Overview](https://github.com/bantoinese83/gemini-nexus/blob/main/docs/models.md)
-- [Gemini 2.5 Models Guide](https://github.com/bantoinese83/gemini-nexus/blob/main/docs/gemini-2.5-models.md)
-- [File API Documentation](https://github.com/bantoinese83/gemini-nexus/blob/main/docs/file-api.md)
-- [Search Grounding Guide](https://github.com/bantoinese83/gemini-nexus/blob/main/docs/search-grounding.md)
-- [Token Counter Documentation](https://github.com/bantoinese83/gemini-nexus/blob/main/docs/token-counter.md)
-
-## Development
-
-This SDK depends on Google's Generative AI SDK. If you're developing this package, install the necessary dependencies:
-
-```bash
-npm install @google/generative-ai
-npm install --save-dev @types/node-fetch
-npm install node-fetch
-```
-
-To build the package:
-
-```bash
-npm run build
-```
-
-## Testing
-
-This SDK comes with a comprehensive test suite:
-
-```bash
-# Run all tests
-npm test
-
-# Run tests with coverage reporting
-npm run test:cov
-
-# Run tests in watch mode (for development)
-npm run test:watch
-
-# Run specific test groups
-npm run test:client     # Test the main client
-npm run test:text       # Test text generation service
-npm run test:chat       # Test chat service
-npm run test:multimodal # Test multimodal service
-npm run test:file       # Test file service
-npm run test:token      # Test token counter service
-```
-
 ## Examples
 
 The repository includes comprehensive examples for all features in the `/examples` directory:
 
 - `basic-usage.ts` - Simple text generation and chat examples
+- `text-auto.ts` - Text generation with auto model selection
+- `function-calling-auto.ts` - Function calling with auto model selection
+- `document-auto.ts` - Document understanding with auto model selection
+- `file-upload-auto.ts` - File upload and wait for ACTIVE state
+- `audio-auto.ts` - Audio understanding with auto model selection
+- `video-auto.ts` - Video understanding with auto model selection
+- `image-auto.ts` - Image understanding with auto model selection
+- `multimodal-auto.ts` - Multimodal generation with auto model selection
+- `structured-output-auto.ts` - Structured output with auto model selection
+- `search-grounding-auto.ts` - Search grounding with auto model selection
+- `code-execution-auto.ts` - Code execution with auto model selection
 - `thinking.ts` - Using chain-of-thought capabilities
 - `gemini-2.5-flash.ts` - Examples for the Gemini 2.5 Flash model
 - `fileApi.ts` - File API usage examples
@@ -649,6 +618,8 @@ The repository includes comprehensive examples for all features in the `/example
 - `structuredOutput.ts` - Generate structured JSON data
 - `codeExecution.ts` - Execute code and get results
 - `multimodal.ts` - Process multiple types of content together
+
+> **Note:** All auto example scripts are fully documented with JSDoc and ready to run with `ts-node`. They are the recommended starting point for most use cases.
 
 ## Current Status
 

@@ -1,4 +1,3 @@
-// Using stub implementation;
 import * as fs from 'fs';
 import { GenerationConfig } from '../types';
 
@@ -221,6 +220,42 @@ export class ImageGenerationService {
       return imagePaths;
     } catch (error) {
       throw new Error(`Imagen image generation failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Generate an image with automatic model/config selection
+   * @param prompt - Text prompt describing the image
+   * @param outputPath - Path to save the generated image
+   * @param config - Optional configuration parameters
+   * @returns Promise with the generated image path and model response
+   * @example
+   * ```typescript
+   * const result = await gemini.imageGeneration.generateAuto("A futuristic cityscape at sunset", "./output/city.png");
+   * console.log(result.imagePath);
+   * ```
+   */
+  async generateAuto(
+    prompt: string,
+    outputPath: string,
+    config?: GenerationConfig
+  ): Promise<{ imagePath: string; response: any }> {
+    // Use Imagen for photorealistic, Gemini for multimodal/creative
+    const isPhoto = /photo(realistic|graphy|realism|portrait|macro|hdr)/i.test(prompt);
+    const model = config?.model || (isPhoto ? this.defaultImagenModel : this.defaultGeminiModel);
+    if (isPhoto) {
+      // Map config to Imagen options
+      const imagenOptions = {
+        numberOfImages: 1,
+        aspectRatio: (config as any)?.aspectRatio || "1:1",
+        personGeneration: (config as any)?.personGeneration || "ALLOW_ADULT",
+        baseFilename: (config as any)?.baseFilename || undefined,
+      };
+      const imagePaths = await this.generateWithImagen(prompt, outputPath, imagenOptions);
+      return { imagePath: imagePaths[0], response: { imagePaths } };
+    } else {
+      // Use Gemini
+      return this.generateWithGemini(prompt, outputPath, config);
     }
   }
 

@@ -1,4 +1,4 @@
-// Using stub implementation;
+import { GoogleGenAI } from "@google/genai";
 import { GenerationConfig, GenerationResponse } from '../types';
 
 /**
@@ -27,18 +27,21 @@ export class TextGenerationService {
    */
   async generate(prompt: string, config?: GenerationConfig): Promise<GenerationResponse> {
     try {
-      // Use stub implementation for now
-      // In a real implementation, we would use the actual Generative AI SDK
-      console.log(`Generating text with prompt: ${prompt}`);
-      
-      // Simulate a response
-      return {
-        text: `Generated response for: ${prompt}`,
-        raw: {}
-      };
+      const ai = new GoogleGenAI({ apiKey: this.client.apiKey });
+      const response = await ai.models.generateContent({
+        model: config?.model || this.defaultModel,
+        contents: prompt,
+        config: config ? {
+          maxOutputTokens: config.maxOutputTokens,
+          temperature: config.temperature,
+          topK: config.topK,
+          topP: config.topP,
+          stopSequences: config.stopSequences,
+        } : undefined,
+      });
+      return { text: response.text ?? '', raw: response };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Text generation failed: ${errorMessage}`);
+      throw new Error(`Text generation failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -65,15 +68,20 @@ export class TextGenerationService {
     config?: GenerationConfig
   ): Promise<GenerationResponse> {
     try {
-      // Use stub implementation for now
-      console.log(`Generating text with system instruction: ${systemInstruction}`);
-      console.log(`Prompt: ${prompt}`);
-      
-      // Simulate a response
-      return {
-        text: `Generated response with system instruction for: ${prompt}`,
-        raw: {}
-      };
+      const ai = new GoogleGenAI({ apiKey: this.client.apiKey });
+      const fullPrompt = `${systemInstruction}\n${prompt}`;
+      const response = await ai.models.generateContent({
+        model: config?.model || this.defaultModel,
+        contents: fullPrompt,
+        config: config ? {
+          maxOutputTokens: config.maxOutputTokens,
+          temperature: config.temperature,
+          topK: config.topK,
+          topP: config.topP,
+          stopSequences: config.stopSequences,
+        } : undefined,
+      });
+      return { text: response.text ?? '', raw: response };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       throw new Error(`Text generation with system instructions failed: ${errorMessage}`);
@@ -97,35 +105,40 @@ export class TextGenerationService {
    */
   async streamGenerate(prompt: string, config?: GenerationConfig): Promise<AsyncIterable<any>> {
     try {
-      // Use stub implementation for now
-      console.log(`Streaming text with prompt: ${prompt}`);
-      
-      // Simulate a streaming response
-      const chunks = [
-        { text: 'This ' },
-        { text: 'is ' },
-        { text: 'a ' },
-        { text: 'streaming ' },
-        { text: 'response.' }
-      ];
-      
-      return {
-        [Symbol.asyncIterator]() {
-          let i = 0;
-          return {
-            async next() {
-              if (i < chunks.length) {
-                return { done: false, value: chunks[i++] };
-              } else {
-                return { done: true, value: undefined };
-              }
-            }
-          };
-        }
-      };
+      const ai = new GoogleGenAI({ apiKey: this.client.apiKey });
+      const stream = await ai.models.generateContentStream({
+        model: config?.model || this.defaultModel,
+        contents: prompt,
+        config: config ? {
+          maxOutputTokens: config.maxOutputTokens,
+          temperature: config.temperature,
+          topK: config.topK,
+          topP: config.topP,
+          stopSequences: config.stopSequences,
+        } : undefined,
+      });
+      return stream;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       throw new Error(`Stream text generation failed: ${errorMessage}`);
     }
+  }
+
+  /**
+   * Generate text with automatic model and config selection based on prompt complexity
+   * @param prompt - Text prompt for generation
+   * @param config - Optional generation configuration
+   * @returns Promise with the generated text
+   * @example
+   * ```typescript
+   * const response = await gemini.textGeneration.generateAuto("Explain quantum computing simply.");
+   * console.log(response.text);
+   * ```
+   */
+  async generateAuto(prompt: string, config?: GenerationConfig): Promise<GenerationResponse> {
+    // Simple heuristic: use Pro for long/complex prompts, Flash for short/simple
+    const isComplex = prompt.length > 300 || /\b(explain|analyze|compare|summarize|step by step|detailed)\b/i.test(prompt);
+    const model = config?.model || (isComplex ? 'gemini-2.5-pro-preview-05-06' : this.defaultModel);
+    return this.generate(prompt, { ...config, model });
   }
 } 

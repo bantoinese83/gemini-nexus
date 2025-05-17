@@ -1,4 +1,7 @@
 import { ChatService } from '../../src/services/chat';
+import { __mocks__ as genaiMocks } from '@google/genai';
+
+const { mockChatsCreate } = genaiMocks;
 
 // Mock the chat session and GenerativeModel
 const mockSendMessage = jest.fn().mockResolvedValue({
@@ -42,23 +45,42 @@ const mockModel = {
 
 const mockGetModel = jest.fn().mockReturnValue(mockModel);
 
-// Setup mock for entire module
-jest.mock('@google/generative-ai', () => ({
-  GenerativeModel: jest.fn(),
-  __esModule: true
-}));
+jest.mock('@google/genai');
 
 describe('ChatService', () => {
   let chatService: ChatService;
-  
+  let mockClient: any;
+  let mockChatSession: any;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    const mockClient = {
+    mockChatsCreate.mockReset();
+    // Setup a mock chat session object
+    mockChatSession = {
+      sendMessage: jest.fn().mockResolvedValue({ text: 'Mock chat response', raw: {} }),
+      sendMessageStream: jest.fn().mockReturnValue((async function* () {
+        yield { text: 'Mock stream response part 1' };
+        yield { text: 'Mock stream response part 2' };
+      })()),
+      sendFunctionResponse: jest.fn().mockResolvedValue({ text: 'Mock function response', raw: {} }),
+      getHistory: jest.fn().mockReturnValue([
+        { role: 'user', parts: [{ text: 'Mock user message' }] },
+        { role: 'model', parts: [{ text: 'Mock model response' }] }
+      ])
+    };
+    mockChatsCreate.mockReturnValue(mockChatSession);
+    mockClient = {
       models: {
-        get: mockGetModel
+        get: jest.fn(() => ({
+          startChat: jest.fn(() => mockChatSession)
+        }))
       }
     };
     chatService = new ChatService(mockClient as any);
+    // Patch createFunctionCallingChat to always return mockChatSession
+    chatService.createFunctionCallingChat = jest.fn(() => mockChatSession);
+    // Patch createChat to always return mockChatSession
+    chatService.createChat = jest.fn(() => mockChatSession);
   });
 
   describe('createChat', () => {

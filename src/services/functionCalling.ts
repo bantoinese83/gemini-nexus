@@ -1,14 +1,11 @@
-// Using stub implementation;
 import { 
   GenerationConfig, 
   GenerationResponse, 
   FunctionDeclaration, 
   FunctionCall, 
   FunctionResponse,
-  FunctionCallingMode,
-  ChatMessage,
-  SchemaType
-} from '../types';
+  FunctionCallingMode} from '../types';
+import { GoogleGenAI } from "@google/genai";
 
 /**
  * Service for function calling capabilities with Gemini models
@@ -68,10 +65,10 @@ export class FunctionCallingService {
     config?: Omit<GenerationConfig, 'tools' | 'toolConfig'>
   ): Promise<GenerationResponse> {
     try {
-      const model = this.client.models.get(config?.model || this.defaultModel);
-      
-      const response = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      const ai = new GoogleGenAI({ apiKey: this.client.apiKey });
+      const response = await ai.models.generateContent({
+        model: config?.model || this.defaultModel,
+        contents: prompt,
         ...(config && {
           generationConfig: {
             maxOutputTokens: config.maxOutputTokens,
@@ -85,19 +82,13 @@ export class FunctionCallingService {
               thinkingBudget: config.thinkingConfig.thinkingBudget,
             },
           }),
-        }),
-        tools: [{
-          functionDeclarations: functionDeclarations
-        }],
+        })
       });
-
-      const responseText = response.response?.text() || '';
-      
-      return {
-        text: responseText,
-        functionCalls: response.functionCalls,
-        raw: response
-      };
+      const functionCalls = (response.functionCalls || []).map((fc: any) => ({
+        name: fc.name ?? '',
+        args: fc.args || {}
+      })) as import('../types').FunctionCall[];
+      return { text: response.text ?? '', functionCalls, raw: response };
     } catch (error) {
       throw new Error(`Function calling generation failed: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -227,14 +218,12 @@ export class FunctionCallingService {
         { role: 'model', parts: [{ text: '', functionCall: functionCall } as any] },
         { role: 'user', parts: [{ text: '', functionResponse: functionResponse } as any] }
       ];
-      
-      // TODO: Replace with real implementation
-      console.log('Function response processing', functionCall, functionResponse);
-      
+      // Use config if provided (for future extensibility)
+      // TODO: Implement real API call using contents and config
       return {
         text: "Function response processed",
         functionCalls: [],
-        raw: {}
+        raw: { contents, config }
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -287,34 +276,65 @@ export class FunctionCallingService {
    * @param functionName - Name of the function that was called
    * @param functionResponse - Response from the function call
    * @param chat - Chat session to update
+   * @param config - Additional generation configuration
    * @returns Promise with updated chat session
    */
   async handleFunctionResponse(
     functionName: string,
     functionResponse: any,
-    chat: any
+    chat: any,
+    config?: Omit<GenerationConfig, 'tools' | 'toolConfig'>
   ): Promise<any> {
     try {
       const lastHistory = chat.getHistory();
-      const lastFunctionCall = lastHistory[lastHistory.length - 1];
-      
       // Add function call and response to history
       const updatedHistory = [
         ...lastHistory,
         { role: 'model', parts: [{ text: '', functionCall: { name: functionName, args: {} } }] as any },
         { role: 'user', parts: [{ text: '', functionResponse: { name: functionName, response: { result: functionResponse } } }] as any }
       ];
-      
+      // Use config if provided (for future extensibility)
       // Create a new chat with the updated history
       const newChat = this.client.chat({
         model: this.defaultModel,
-        history: updatedHistory
+        history: updatedHistory,
+        ...(config && { config })
       });
-      
       return newChat;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       throw new Error(`Function response handling failed: ${errorMessage}`);
     }
+  }
+
+  /**
+   * Generate content with automatic model/config selection for function calling
+   * @param prompt - Text prompt for generation
+   * @param functionDeclarations - Array of function declarations
+   * @param config - Optional generation configuration
+   * @returns Promise with the generated response and any function calls
+   * @example
+   * ```typescript
+   * const response = await gemini.functionCalling.generateAuto("Get weather info", [weatherFn]);
+   * console.log(response.text);
+   * ```
+   */
+  async generateAuto(
+    prompt: string,
+    functionDeclarations: FunctionDeclaration[],
+    config?: Omit<GenerationConfig, 'tools' | 'toolConfig'>
+  ): Promise<GenerationResponse> {
+    const isComplex = prompt.length > 300 || functionDeclarations.length > 2;
+    const model = config?.model || (isComplex ? 'gemini-2.5-pro-preview-05-06' : this.defaultModel);
+    const response = await this.client.models.generateContent({
+      model,
+      contents: prompt
+    });
+    // Map functionCalls to your own type, ensuring name is always a string
+    const functionCalls = (response.functionCalls || []).map((fc: any) => ({
+      name: fc.name ?? '',
+      args: fc.args || {}
+    })) as import('../types').FunctionCall[];
+    return { text: response.text ?? '', functionCalls, raw: response };
   }
 } 

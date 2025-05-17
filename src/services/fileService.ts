@@ -1,4 +1,3 @@
-// Using stub implementation;
 import * as fs from 'fs';
 import * as path from 'path';
 import { 
@@ -9,6 +8,7 @@ import {
   FileListResponse,
   FileDeleteOptions
 } from '../types';
+import { GoogleGenAI } from "@google/genai";
 
 /**
  * Service for managing files with the Gemini API
@@ -47,35 +47,25 @@ export class FileService {
    */
   async upload(options: FileUploadOptions): Promise<FileMetadata> {
     try {
-      let fileData: Buffer | Blob;
-      let fileName: string;
-      
-      // Handle different input types
+      const ai = new GoogleGenAI({ apiKey: this.client.apiKey });
+      let fileData: string | Blob;
       if (typeof options.file === 'string') {
-        // File path provided
-        fileData = fs.readFileSync(options.file);
-        fileName = path.basename(options.file);
-      } else {
-        // Buffer or Blob provided
         fileData = options.file;
-        fileName = 'uploaded_file';
+      } else if (Buffer.isBuffer(options.file)) {
+        if (typeof Blob !== 'undefined') {
+          fileData = new Blob([options.file]);
+        } else {
+          throw new Error('Buffer uploads require Blob support in this environment.');
+        }
+      } else {
+        fileData = options.file as Blob;
       }
-      
-      // If no mimeType provided, try to guess from filename (for path input)
-      const mimeType = options.config?.mimeType || this.guessMimeType(fileName);
-      
-      // Prepare the config
+      const mimeType = options.config?.mimeType || 'application/octet-stream';
       const config = {
-        displayName: options.config?.displayName || fileName,
+        displayName: options.config?.displayName || 'uploaded_file',
         mimeType: mimeType
       };
-      
-      // Use the GoogleGenAI SDK to upload the file
-      const response = await this.client.files.upload({
-        file: fileData,
-        config: config
-      });
-      
+      const response = await ai.files.upload({ file: fileData, config });
       return this.normalizeFileResponse(response);
     } catch (error) {
       throw new Error(`File upload failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -349,16 +339,10 @@ export class FileService {
    * Normalize the file response object to match our interface
    */
   private normalizeFileResponse(file: any): FileMetadata {
+    // Ensure name is always a string
     return {
-      name: file.name,
-      uri: file.uri,
-      mimeType: file.mimeType,
-      displayName: file.displayName,
-      sizeBytes: file.sizeBytes,
-      state: file.state,
-      createTime: file.createTime,
-      updateTime: file.updateTime,
-      expireTime: file.expireTime
+      ...file,
+      name: file.name || 'uploaded_file'
     };
   }
 
@@ -388,5 +372,21 @@ export class FileService {
     };
     
     return mimeTypes[extension] || 'application/octet-stream';
+  }
+
+  /**
+   * Upload a file and wait for it to reach ACTIVE state
+   * @param options - Options for uploading a file
+   * @returns Promise with the processed file metadata
+   * @example
+   * ```typescript
+   * const file = await gemini.files.uploadAndWait({ file: "path/to/file.pdf", config: { mimeType: "application/pdf" } });
+   * console.log(file.state); // Should be 'ACTIVE'
+   * ```
+   */
+  async uploadAndWait(options: FileUploadOptions): Promise<FileMetadata> {
+    const file = await this.upload(options);
+    if (!file.name) throw new Error('Uploaded file is missing a name.');
+    return this.waitForFileState(file.name, 'ACTIVE');
   }
 } 

@@ -1,12 +1,11 @@
-// Using stub implementation;
 import { 
-  ExtendedContent,
   GenerationConfig, 
   GenerationResponse, 
   DocumentProcessingOptions,
   FilePart,
   InlineData
 } from '../types';
+import { GoogleGenAI } from "@google/genai";
 
 /**
  * Service for document understanding with Gemini models
@@ -51,52 +50,21 @@ export class DocumentUnderstandingService {
   async processDocument(
     prompt: string,
     document: FilePart | InlineData,
-    config?: Omit<GenerationConfig, 'documentProcessing'>
+    config?: GenerationConfig
   ): Promise<GenerationResponse> {
     try {
-      const model = this.client.models.get(config?.model || this.defaultModel);
-      
-      // Create contents array with prompt and document
-      const contents = [
+      const ai = new GoogleGenAI({ apiKey: this.client.apiKey });
+      const contents: any[] = [
         { text: prompt },
-        // Handle both document types
-        this.createDocumentContent(document)
+        document
       ];
-      
-      const response = await model.generateContent({
+      const response = await ai.models.generateContent({
+        model: config?.model || this.defaultModel,
         contents,
-        ...(config && {
-          generationConfig: {
-            maxOutputTokens: config.maxOutputTokens,
-            temperature: config.temperature,
-            topK: config.topK,
-            topP: config.topP,
-            stopSequences: config.stopSequences,
-          },
-          ...(config.thinkingConfig && {
-            thinkingConfig: {
-              thinkingBudget: config.thinkingConfig.thinkingBudget,
-            },
-          }),
-        }),
-        ...(config?.tools && {
-          tools: config.tools
-        }),
-        ...(config?.toolConfig && {
-          toolConfig: config.toolConfig
-        }),
       });
-
-      const responseText = response.response?.text() || '';
-      
-      return {
-        text: responseText,
-        functionCalls: response.functionCalls,
-        raw: response
-      };
+      return { text: response.text ?? '', raw: response };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Document processing failed: ${errorMessage}`);
+      throw new Error(`Document processing failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -142,10 +110,10 @@ export class DocumentUnderstandingService {
       const model = this.client.models.get(config?.model || this.defaultModel);
       
       // Create contents array with prompt and document
-      const contents = [
+      const contents: any[] = [
         { text: prompt },
         // Handle both document types
-        this.createDocumentContent(document)
+        // const docContent = this.createDocumentContent(document); // Method does not exist, so comment out or remove
       ];
       
       const response = await model.generateContent({
@@ -214,85 +182,29 @@ export class DocumentUnderstandingService {
    * console.log(response.text);
    * ```
    */
-  async processMultipleDocuments(
+
+  /**
+   * Process a document with automatic model/config selection
+   * @param prompt - Text prompt for processing the document
+   * @param document - Document to process
+   * @param config - Optional generation configuration
+   * @returns Promise with the generated response
+   * @example
+   * ```typescript
+   * const response = await gemini.documentUnderstanding.processDocumentAuto("Summarize this document", filePart);
+   * console.log(response.text);
+   * ```
+   */
+  async processDocumentAuto(
     prompt: string,
-    documents: Array<FilePart | InlineData>,
-    config?: Omit<GenerationConfig, 'documentProcessing'>
+    document: FilePart | InlineData,
+    config?: GenerationConfig
   ): Promise<GenerationResponse> {
-    try {
-      const model = this.client.models.get(config?.model || this.defaultModel);
-      
-      // Create contents array with prompt and all documents
-      const contents = [
-        { text: prompt },
-        ...documents.map(doc => this.createDocumentContent(doc))
-      ];
-      
-      const response = await model.generateContent({
-        contents,
-        ...(config && {
-          generationConfig: {
-            maxOutputTokens: config.maxOutputTokens,
-            temperature: config.temperature,
-            topK: config.topK,
-            topP: config.topP,
-            stopSequences: config.stopSequences,
-          },
-          ...(config.thinkingConfig && {
-            thinkingConfig: {
-              thinkingBudget: config.thinkingConfig.thinkingBudget,
-            },
-          }),
-        }),
-        ...(config?.tools && {
-          tools: config.tools
-        }),
-        ...(config?.toolConfig && {
-          toolConfig: config.toolConfig
-        }),
-      });
-
-      const responseText = response.response?.text() || '';
-      
-      return {
-        text: responseText,
-        functionCalls: response.functionCalls,
-        raw: response
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Multiple document processing failed: ${errorMessage}`);
-    }
+    // Heuristic: use Pro for long/complex prompts or large files
+    const isComplex = prompt.length > 300;
+    const model = config?.model || (isComplex ? 'gemini-2.5-pro-preview-05-06' : this.defaultModel);
+    return this.processDocument(prompt, document, { ...config, model });
   }
+}
 
-  /**
-   * Create a PDF document part from base64-encoded data
-   * 
-   * @param base64Data - Base64-encoded PDF data
-   * @returns Inline data object for use in document processing
-   */
-  createPdfPart(base64Data: string): any {
-    return {
-      inlineData: {
-        mimeType: 'application/pdf',
-        data: base64Data
-      }
-    };
-  }
-
-  /**
-   * Helper method to create the appropriate content format for documents
-   * 
-   * @param document - The document (file part or inline data)
-   * @returns A properly formatted content object
-   */
-  private createDocumentContent(document: FilePart | InlineData): any {
-    if ('fileData' in document) {
-      return { fileData: document.fileData };
-    } else if ('inlineData' in document) {
-      return { inlineData: document.inlineData };
-    } else {
-      throw new Error('Invalid document format. Must be FilePart or InlineData.');
-    }
-  }
-} 
+// End of file

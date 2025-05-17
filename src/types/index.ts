@@ -846,4 +846,7 @@ export interface CodeExecutionResponse {
   executionResult?: string;
   /** Raw response from the API */
   raw: any;
-} 
+}
+
+// All interfaces, types, and enums in this file are exported for developer use.
+// You can import any type directly from 'gemini-nexus/types'. 

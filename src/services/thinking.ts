@@ -1,4 +1,3 @@
-// Using stub implementation;
 import { GenerationConfig, GenerationResponse, ThinkingConfig } from '../types';
 
 /**
@@ -35,11 +34,11 @@ export class ThinkingService {
   async generate(
     prompt: string,
     thinkingBudget: number = 1024,
-    config?: Omit<GenerationConfig, 'thinkingConfig'>
+    config?: Omit<GenerationConfig, 'thinkingConfig'> & { thinkingConfig?: ThinkingConfig }
   ): Promise<GenerationResponse> {
     try {
       const model = this.client.models.get(config?.model || this.defaultModel);
-      
+      const thinkingConfig: ThinkingConfig = config?.thinkingConfig || { thinkingBudget };
       const response = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         ...(config && {
@@ -51,13 +50,9 @@ export class ThinkingService {
             stopSequences: config.stopSequences,
           },
         }),
-        thinkingConfig: {
-          thinkingBudget: thinkingBudget,
-        },
+        thinkingConfig,
       });
-
       const responseText = response.response?.text() || '';
-      
       return {
         text: responseText,
         raw: response

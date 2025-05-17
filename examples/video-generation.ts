@@ -4,7 +4,7 @@
  * Run with: ts-node examples/video-generation.ts
  */
 
-import GeminiClient, { VeoModel } from '../src';
+import GeminiClient from '../src';
 import * as path from 'path';
 import * as fs from 'fs';
 

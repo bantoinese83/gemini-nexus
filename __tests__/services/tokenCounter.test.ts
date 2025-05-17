@@ -1,9 +1,10 @@
 import { TokenCounterService } from '../../src/services/tokenCounter';
+import { __mocks__ as genaiMocks } from '@google/genai';
 
-// Mock genAI.countTokens
-const mockCountTokens = jest.fn().mockResolvedValue({ totalTokens: 42 });
+const { mockCountTokens } = genaiMocks;
 
 // Setup mock for entire module
+jest.mock('@google/genai');
 jest.mock('@google/generative-ai', () => ({
   GenerativeModel: jest.fn(),
   genAI: {
@@ -17,7 +18,18 @@ describe('TokenCounterService', () => {
   
   beforeEach(() => {
     jest.clearAllMocks();
-    tokenCounter = new TokenCounterService({} as any);
+    mockCountTokens.mockReset();
+    mockCountTokens.mockResolvedValue({ totalTokens: 42 });
+    // Provide a mock client with models.get().countTokens and models.countTokens for the service
+    const mockClient = {
+      models: {
+        get: jest.fn(() => ({
+          countTokens: mockCountTokens
+        })),
+        countTokens: mockCountTokens
+      }
+    };
+    tokenCounter = new TokenCounterService(mockClient as any);
   });
   
   describe('countTokensInText', () => {

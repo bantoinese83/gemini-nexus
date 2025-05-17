@@ -1,5 +1,5 @@
-// Using stub implementation;
 import { GenerationConfig, SchemaType, JsonSchema } from '../types';
+import { GoogleGenAI } from "@google/genai";
 
 /**
  * Service for generating structured output with Gemini models
@@ -278,5 +278,42 @@ export class StructuredOutputService {
     } catch (error) {
       throw new Error(`Boolean generation failed: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  async generateStructured(prompt: string, schema: JsonSchema, config?: GenerationConfig): Promise<any> {
+    try {
+      const ai = new GoogleGenAI({ apiKey: this.client.apiKey });
+      const response = await ai.models.generateContent({
+        model: config?.model || this.defaultModel,
+        contents: prompt,
+        config: {},
+      });
+      return response.text;
+    } catch (error) {
+      throw new Error(`Structured output generation failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Generate structured output with automatic model/config selection
+   * @param prompt - Text prompt for generating content
+   * @param schema - JSON schema defining the structure of the response
+   * @param config - Optional configuration parameters
+   * @returns Promise with the parsed JSON result
+   * @example
+   * ```typescript
+   * const schema = { type: 'object', properties: { name: { type: 'string' } } };
+   * const result = await gemini.structuredOutput.generateAuto("List a few names.", schema);
+   * console.log(result);
+   * ```
+   */
+  async generateAuto<T = any>(
+    prompt: string,
+    schema: JsonSchema,
+    config?: GenerationConfig
+  ): Promise<T> {
+    const isComplex = prompt.length > 300 || (schema && schema.type === 'object');
+    const model = config?.model || (isComplex ? 'gemini-2.5-pro-preview-05-06' : this.defaultModel);
+    return this.generateWithSchema(prompt, schema, { ...config, model });
   }
 } 

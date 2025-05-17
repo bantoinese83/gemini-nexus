@@ -1,9 +1,9 @@
-// Using stub implementation;
 import * as fs from 'fs';
 import { createWriteStream } from 'fs';
 import fetch from 'node-fetch';
 import { Readable } from 'stream';
 import { GenerationConfig } from '../types';
+import { GoogleGenAI } from "@google/genai";
 
 /**
  * Service for video generation using Veo models
@@ -413,5 +413,18 @@ export class VideoGenerationService {
     };
     
     return mimeTypes[extension || ''] || 'application/octet-stream';
+  }
+
+  async generateVideo(prompt: string, config?: GenerationConfig): Promise<any> {
+    try {
+      const ai = new GoogleGenAI({ apiKey: this.client.apiKey });
+      const response = await ai.models.generateContent({
+        model: config?.model || this.defaultVeoModel,
+        contents: prompt,
+      });
+      return response;
+    } catch (error) {
+      throw new Error(`Video generation failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 } 

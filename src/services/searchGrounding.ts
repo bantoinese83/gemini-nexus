@@ -1,4 +1,3 @@
-// Using stub implementation;
 import { 
   GenerationConfig, 
   GenerationResponse, 
@@ -351,5 +350,35 @@ export class SearchGroundingService {
    */
   getWebSearchQueries(response: GenerationResponse): string[] {
     return response.groundingMetadata?.webSearchQueries || [];
+  }
+
+  /**
+   * Generate content with automatic model/config selection for search grounding
+   * @param prompt - Text prompt for generation
+   * @param config - Optional generation configuration
+   * @returns Promise with the generation results including search grounding data
+   * @example
+   * ```typescript
+   * const response = await gemini.searchGrounding.generateAuto("Who won the most medals in 2024 Olympics?");
+   * console.log(response.text);
+   * ```
+   */
+  async generateAuto(
+    prompt: string,
+    config?: GenerationConfig
+  ): Promise<GenerationResponse> {
+    // Use 1.5-flash for grounding, 2.0-flash for general, 2.5 for complex
+    const isComplex = prompt.length > 300 || /\b(latest|recent|news|search|find|lookup)\b/i.test(prompt);
+    let model = config?.model;
+    if (!model) {
+      if (/\b(search|lookup|ground|fact|news|recent)\b/i.test(prompt)) {
+        model = 'gemini-1.5-flash';
+      } else if (isComplex) {
+        model = 'gemini-2.5-flash-preview-04-17';
+      } else {
+        model = this.defaultModel;
+      }
+    }
+    return this.generate(prompt, { ...config, model });
   }
 } 

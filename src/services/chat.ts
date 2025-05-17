@@ -1,12 +1,9 @@
-// Using stub implementation;
+import { GoogleGenAI } from "@google/genai";
 import { 
-  ChatHistory, 
   ChatMessage, 
   GenerationConfig, 
   GenerationResponse, 
-  FunctionDeclaration,
-  FunctionCall,
-  FunctionResponse
+  FunctionDeclaration
 } from '../types';
 
 /**
@@ -35,111 +32,29 @@ export class ChatService {
    * ```
    */
   createChat(config?: GenerationConfig, history?: ChatMessage[]) {
-    const model = this.client.models.get(config?.model || this.defaultModel);
-    
-    const chat = model.startChat({
+    const ai = new GoogleGenAI({ apiKey: this.client.apiKey });
+    const chat = ai.chats.create({
+      model: config?.model || this.defaultModel,
       history: history || [],
-      generationConfig: config ? {
-        maxOutputTokens: config.maxOutputTokens,
-        temperature: config.temperature,
-        topK: config.topK,
-        topP: config.topP,
-        stopSequences: config.stopSequences,
-      } : undefined,
-      ...(config?.thinkingConfig && {
-        thinkingConfig: {
-          thinkingBudget: config.thinkingConfig.thinkingBudget,
-        },
-      }),
-      ...(config?.tools && {
-        tools: config.tools
-      }),
-      ...(config?.toolConfig && {
-        toolConfig: config.toolConfig
-      }),
     });
-
-    // Add methods to send messages
     return {
-      /**
-       * Send a message in this chat session
-       * 
-       * @param message - The message text to send
-       * @returns Promise with the response
-       */
-      sendMessage: async (message: string): Promise<GenerationResponse> => {
+      sendMessage: async (message: string) => {
         try {
-          const response = await chat.sendMessage({
-            parts: [{ text: message }],
-          });
-          
-          return {
-            text: response.response?.text() || '',
-            functionCalls: response.functionCalls,
-            raw: response
-          };
+          const response = await chat.sendMessage({ message });
+          return { text: response.text ?? '', raw: response };
         } catch (error) {
           throw new Error(`Failed to send message: ${error instanceof Error ? error.message : String(error)}`);
         }
       },
-
-      /**
-       * Send a message and stream the response
-       * 
-       * @param message - The message text to send
-       * @returns AsyncIterable of response chunks
-       */
-      sendMessageStream: async (message: string): Promise<AsyncIterable<any>> => {
+      sendMessageStream: async (message: string) => {
         try {
-          const response = await chat.sendMessageStream({
-            parts: [{ text: message }],
-          });
-          
-          return response.stream;
+          const stream = await chat.sendMessageStream({ message });
+          return stream;
         } catch (error) {
           throw new Error(`Failed to stream message: ${error instanceof Error ? error.message : String(error)}`);
         }
       },
-
-      /**
-       * Send a function response in this chat session
-       * 
-       * @param functionCall - The function call from the model
-       * @param functionResult - The result of executing the function
-       * @returns Promise with the response
-       */
-      sendFunctionResponse: async (
-        functionCall: FunctionCall,
-        functionResult: any
-      ): Promise<GenerationResponse> => {
-        try {
-          const functionResponse: FunctionResponse = {
-            name: functionCall.name,
-            response: { result: functionResult }
-          };
-
-          const response = await chat.sendMessage({
-            parts: [{ functionResponse }]
-          });
-          
-          return {
-            text: response.response?.text() || '',
-            functionCalls: response.functionCalls,
-            raw: response
-          };
-        } catch (error) {
-          throw new Error(`Failed to send function response: ${error instanceof Error ? error.message : String(error)}`);
-        }
-      },
-
-      /**
-       * Get the current chat history
-       * 
-       * @returns Array of chat messages
-       */
-      getHistory: (): ChatMessage[] => {
-        return chat.getHistory();
-      }
+      getHistory: () => chat.getHistory(),
     };
   }
 

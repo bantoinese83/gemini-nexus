@@ -1,6 +1,6 @@
-// Using stub implementation;
 import { GenerationConfig, GenerationResponse } from '../types';
 import * as fs from 'fs';
+import { GoogleGenAI } from "@google/genai";
 
 /**
  * Service for multimodal content generation with Gemini models
@@ -36,39 +36,17 @@ export class MultimodalService {
     config?: GenerationConfig
   ): Promise<GenerationResponse> {
     try {
-      const model = this.client.models.get(config?.model || this.defaultModel);
-      
-      // Upload the image file
-      const image = await this.client.files.upload({
-        file: fs.readFileSync(imagePath),
-        mimeType: this._getMimeType(imagePath),
+      const ai = new GoogleGenAI({ apiKey: this.client.apiKey });
+      const imageBuffer = fs.readFileSync(imagePath);
+      const base64Image = imageBuffer.toString('base64');
+      const response = await ai.models.generateContent({
+        model: config?.model || this.defaultModel,
+        contents: [
+          { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
+          { text: prompt }
+        ],
       });
-      
-      const response = await model.generateContent({
-        contents: [{
-          role: 'user',
-          parts: [
-            { text: prompt },
-            { fileData: { mimeType: this._getMimeType(imagePath), fileUri: image.uri } }
-          ]
-        }],
-        ...(config && {
-          generationConfig: {
-            maxOutputTokens: config.maxOutputTokens,
-            temperature: config.temperature,
-            topK: config.topK,
-            topP: config.topP,
-            stopSequences: config.stopSequences,
-          },
-        }),
-      });
-
-      const responseText = response.response?.text() || '';
-      
-      return {
-        text: responseText,
-        raw: response
-      };
+      return { text: response.text ?? '', raw: response };
     } catch (error) {
       throw new Error(`Image-based generation failed: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -225,5 +203,27 @@ export class MultimodalService {
     };
     
     return mimeTypes[extension || ''] || 'application/octet-stream';
+  }
+
+  /**
+   * Generate multimodal content with automatic model/config selection
+   * @param prompt - Text prompt for generation
+   * @param imagePath - Path to the image file
+   * @param config - Optional generation configuration
+   * @returns Promise with the generated text
+   * @example
+   * ```typescript
+   * const response = await gemini.multimodal.generateAuto("Describe this image in detail", "/path/to/image.jpg");
+   * console.log(response.text);
+   * ```
+   */
+  async generateAuto(
+    prompt: string,
+    imagePath: string,
+    config?: GenerationConfig
+  ): Promise<GenerationResponse> {
+    const isComplex = prompt.length > 300 || /\b(analyze|describe|qa|question|detailed|compare|summarize)\b/i.test(prompt);
+    const model = config?.model || (isComplex ? 'gemini-2.5-flash-preview-04-17' : this.defaultModel);
+    return this.generateFromImage(prompt, imagePath, { ...config, model });
   }
 } 

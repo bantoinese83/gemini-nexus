@@ -1,11 +1,7 @@
-// Using stub implementation;
 import { 
   GenerationConfig, 
-  CodeExecutionConfig,
   CodeExecutionTool,
-  CodeExecutionResponse,
-  ExecutableCodePart,
-  CodeExecutionResultPart
+  CodeExecutionResponse
 } from '../types';
 
 /**
@@ -270,7 +266,7 @@ export class CodeExecutionService {
       const response = await chat.sendMessage({ message: prompt });
       
       // Parse the response to extract code and execution results
-      let fullText = response.text() || '';
+      const fullText = response.text() || '';
       let generatedCode = '';
       let executionResult = '';
       
@@ -306,5 +302,25 @@ export class CodeExecutionService {
     } catch (error) {
       throw new Error(`Code execution in chat failed: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  /**
+   * Execute code with automatic model/config selection
+   * @param prompt - Text prompt describing the problem to solve
+   * @param config - Generation configuration options
+   * @returns Promise with the code execution results
+   * @example
+   * ```typescript
+   * const response = await gemini.codeExecution.executeAuto("Calculate the sum of the first 100 primes.");
+   * console.log(response.text);
+   * ```
+   */
+  async executeAuto(
+    prompt: string,
+    config?: GenerationConfig
+  ): Promise<CodeExecutionResponse> {
+    const isComplex = prompt.length > 300 || /\b(analyze|explain|visualize|complex|data|plot|chart|summarize|compare)\b/i.test(prompt);
+    const model = config?.model || (isComplex ? 'gemini-2.5-pro-preview-05-06' : this.defaultModel);
+    return this.execute(prompt, { ...config, model });
   }
 } 

@@ -1,41 +1,29 @@
 import { TextGenerationService } from '../../src/services/textGeneration';
+import { __mocks__ as genaiMocks } from '@google/genai';
 
-// Mock the GenerativeModel class
-const mockGenerateContent = jest.fn().mockResolvedValue({
-  response: {
-    candidates: [{ content: { parts: [{ text: 'Mock response' }] } }]
-  },
-  text: () => 'Mock response'
-});
+const { mockGenerateContent, mockGenerateContentStream } = genaiMocks;
 
-const mockGenerateContentStream = jest.fn().mockResolvedValue({
-  stream: (async function* () {
-    yield { text: 'Mock stream response part 1' };
-    yield { text: 'Mock stream response part 2' };
-  })()
-});
-
-const mockModel = {
-  generateContent: mockGenerateContent,
-  generateContentStream: mockGenerateContentStream
-};
-
-const mockGetModel = jest.fn().mockReturnValue(mockModel);
-
-// Setup mock for entire module
-jest.mock('@google/generative-ai', () => ({
-  GenerativeModel: jest.fn(),
-  __esModule: true
-}));
+jest.mock('@google/genai');
 
 describe('TextGenerationService', () => {
   let textGeneration: TextGenerationService;
-  
+  let mockClient: any;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    const mockClient = {
+    mockGenerateContent.mockReset();
+    mockGenerateContentStream.mockReset();
+    mockGenerateContent.mockResolvedValue({ text: 'Mock response', raw: {} });
+    mockGenerateContentStream.mockReturnValue((async function* () {
+      yield { text: 'Mock stream response part 1' };
+      yield { text: 'Mock stream response part 2' };
+    })());
+    mockClient = {
       models: {
-        get: mockGetModel
+        get: jest.fn(() => ({
+          generateContent: mockGenerateContent,
+          generateContentStream: mockGenerateContentStream
+        }))
       }
     };
     textGeneration = new TextGenerationService(mockClient as any);

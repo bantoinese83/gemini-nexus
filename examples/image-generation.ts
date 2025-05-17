@@ -4,7 +4,7 @@
  * Run with: ts-node examples/image-generation.ts
  */
 
-import GeminiClient, { GeminiModel, ImagenModel } from '../src';
+import GeminiClient, { GeminiModel } from '../src';
 import * as path from 'path';
 import * as fs from 'fs';
 

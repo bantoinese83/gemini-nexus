@@ -1,4 +1,3 @@
-// Using stub implementation;
 import { 
   GenerationConfig, 
   GenerationResponse, 
@@ -8,6 +7,7 @@ import {
   VideoScene
 } from '../types';
 import * as fs from 'fs';
+import { GoogleGenAI } from "@google/genai";
 
 /**
  * Service for video understanding with Gemini models
@@ -46,85 +46,18 @@ export class VideoUnderstandingService {
     config?: GenerationConfig
   ): Promise<GenerationResponse> {
     try {
-      // Check file size to determine if we should use File API or inline data
-      const stats = fs.statSync(videoPath);
-      const fileSizeInMB = stats.size / (1024 * 1024);
-      const shouldUseFileApi = fileSizeInMB > 20;
-
-      const model = this.client.models.get(config?.model || this.defaultModel);
-      const mimeType = this._getMimeType(videoPath);
-
-      let response;
-      
-      if (shouldUseFileApi) {
-        // Upload the video file
-        const videoFile = await this.client.files.upload({
-          file: fs.readFileSync(videoPath),
-          mimeType: mimeType
-        });
-        
-        // Wait for processing to complete
-        await this._waitForFileProcessing(videoFile.name);
-        
-        // Generate content using the file reference
-        response = await model.generateContent({
-          contents: [
-            {
-              role: 'user',
-              parts: [
-                { fileData: { mimeType, fileUri: videoFile.uri } },
-                { text: prompt }
-              ]
-            }
-          ],
-          ...(config && {
-            generationConfig: {
-              maxOutputTokens: config.maxOutputTokens,
-              temperature: config.temperature,
-              topK: config.topK,
-              topP: config.topP,
-              stopSequences: config.stopSequences,
-            },
-          }),
-        });
-      } else {
-        // Use inline data for smaller videos
-        const videoBuffer = fs.readFileSync(videoPath);
-        const base64Video = videoBuffer.toString('base64');
-        
-        response = await model.generateContent({
-          contents: [
-            {
-              role: 'user',
-              parts: [
-                { 
-                  inlineData: {
-                    mimeType,
-                    data: base64Video
-                  }
-                },
-                { text: prompt }
-              ]
-            }
-          ],
-          ...(config && {
-            generationConfig: {
-              maxOutputTokens: config.maxOutputTokens,
-              temperature: config.temperature,
-              topK: config.topK,
-              topP: config.topP,
-              stopSequences: config.stopSequences,
-            },
-          }),
-        });
-      }
-
-      const responseText = response.response?.text() || '';
-      
-      return {
-        text: responseText,
-        raw: response
-      };
+      const ai = new GoogleGenAI({ apiKey: this.client.apiKey });
+      const videoBuffer = fs.readFileSync(videoPath);
+      const base64Video = videoBuffer.toString('base64');
+      const contents = [
+        { inlineData: { mimeType: 'video/mp4', data: base64Video } },
+        { text: prompt }
+      ];
+      const response = await ai.models.generateContent({
+        model: config?.model || this.defaultModel,
+        contents,
+      });
+      return { text: response.text ?? '', raw: response };
     } catch (error) {
       throw new Error(`Video analysis failed: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -313,6 +246,28 @@ export class VideoUnderstandingService {
     } catch (error) {
       throw new Error(`YouTube video analysis failed: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  /**
+   * Analyze video with automatic model/config selection
+   * @param videoPath - Path to the video file
+   * @param prompt - Custom prompt for analyzing the video
+   * @param config - Optional generation configuration
+   * @returns Promise with the analysis results
+   * @example
+   * ```typescript
+   * const response = await gemini.videoUnderstanding.analyzeVideoAuto("/path/to/video.mp4", "Summarize this video");
+   * console.log(response.text);
+   * ```
+   */
+  async analyzeVideoAuto(
+    videoPath: string,
+    prompt: string,
+    config?: GenerationConfig
+  ): Promise<GenerationResponse> {
+    const isComplex = prompt.length > 300 || /\b(transcribe|detailed|analyze|summarize|qa|question|scene)\b/i.test(prompt);
+    const model = config?.model || (isComplex ? 'gemini-2.5-pro-preview-05-06' : this.defaultModel);
+    return this.analyzeVideo(videoPath, prompt, { ...config, model });
   }
 
   /**

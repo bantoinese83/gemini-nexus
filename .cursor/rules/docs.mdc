@@ -1,0 +1,23 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+@https://ai.google.dev/gemini-api/docs/text-generation 
+@https://ai.google.dev/gemini-api/docs/image-generation 
+@https://ai.google.dev/gemini-api/docs/video 
+@https://ai.google.dev/gemini-api/docs/long-context 
+@https://ai.google.dev/gemini-api/docs/structured-output 
+@https://ai.google.dev/gemini-api/docs/thinking 
+@https://ai.google.dev/gemini-api/docs/function-calling?example=chart 
+@https://ai.google.dev/gemini-api/docs/document-processing?lang=node 
+@https://ai.google.dev/gemini-api/docs/image-understanding 
+@https://ai.google.dev/gemini-api/docs/video-understanding 
+@https://ai.google.dev/gemini-api/docs/audio 
+@https://ai.google.dev/gemini-api/docs/code-execution 
+@https://ai.google.dev/gemini-api/docs/grounding?lang=javascript 
+@https://ai.google.dev/gemini-api/docs/grounding/search-suggestions 
+@https://ai.google.dev/gemini-api/docs/prompting-strategies 
+@https://ai.google.dev/gemini-api/docs/caching?lang=node 
+@https://ai.google.dev/gemini-api/docs/files 
+@https://ai.google.dev/gemini-api/docs/tokens?lang=node

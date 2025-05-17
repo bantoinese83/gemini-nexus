@@ -4,117 +4,40 @@
  * Run with: ts-node examples/basic-usage.ts
  */
 
-import GeminiClient, { GeminiModel } from '../src';
+// Modern Gemini Nexus Quickstart Example
+import { GeminiClient } from '../src/services/client';
+import { SchemaType } from '../src/types';
 
-// Replace with your actual API key
-const API_KEY = 'YOUR_GEMINI_API_KEY';
+async function quickstart() {
+  // Enable debug mode for all API calls
+  const gemini = new GeminiClient(process.env.GEMINI_API_KEY || 'YOUR_API_KEY', true);
 
-// Initialize the client
-const gemini = new GeminiClient(API_KEY);
+  // Suggest a model for a coding task
+  const bestModel = gemini.suggestModelForTask('code');
+  console.log('Suggested model for code:', bestModel);
 
-/**
- * Basic text generation example
- */
-async function basicTextGeneration() {
-  console.log('\n=== Basic Text Generation ===');
-  
-  try {
-    const response = await gemini.textGeneration.generate(
-      'Explain quantum computing in simple terms',
-      { 
-        model: GeminiModel.PRO,
-        temperature: 0.2,
-        maxOutputTokens: 200
-      }
-    );
-    
-    console.log(response.text);
-  } catch (error) {
-    console.error('Error during text generation:', error.message);
-  }
-}
+  // Use the new auto text generation method
+  const autoText = await gemini.textGeneration.generateAuto('Explain the difference between TypeScript and JavaScript.');
+  console.log('Auto text generation:', autoText.text);
 
-/**
- * Text generation with system instructions
- */
-async function textGenerationWithInstructions() {
-  console.log('\n=== Text Generation with System Instructions ===');
-  
-  try {
-    const response = await gemini.textGeneration.generateWithSystemInstructions(
-      'Tell me a story',
-      'You are a children\'s book author who writes short, whimsical stories with a moral lesson.',
-      { temperature: 0.7 }
-    );
-    
-    console.log(response.text);
-  } catch (error) {
-    console.error('Error during text generation with instructions:', error.message);
-  }
-}
-
-/**
- * Multi-turn chat conversation
- */
-async function chatConversation() {
-  console.log('\n=== Chat Conversation ===');
-  
-  try {
-    const chat = gemini.chat.createChat({
-      model: GeminiModel.PRO,
-      temperature: 0.3
-    });
-    
-    const response1 = await chat.sendMessage('What are the top 3 programming languages for AI development?');
-    console.log('User: What are the top 3 programming languages for AI development?');
-    console.log(`Gemini: ${response1.text}`);
-    
-    const response2 = await chat.sendMessage('Which one is best for beginners?');
-    console.log('User: Which one is best for beginners?');
-    console.log(`Gemini: ${response2.text}`);
-  } catch (error) {
-    console.error('Error during chat conversation:', error.message);
-  }
-}
-
-/**
- * Streaming response example
- */
-async function streamingResponse() {
-  console.log('\n=== Streaming Response ===');
-  
-  try {
-    console.log('Gemini: ');
-    
-    const stream = await gemini.textGeneration.streamGenerate(
-      'Write a short poem about artificial intelligence',
-      { temperature: 0.7 }
-    );
-    
-    for await (const chunk of stream) {
-      process.stdout.write(chunk.text);
+  // Use the new auto function calling method
+  const weatherFn = {
+    name: 'get_weather',
+    description: 'Get the current weather for a city.',
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        city: { type: SchemaType.STRING, description: 'City name' }
+      },
+      required: ['city']
     }
-    console.log('\n');
-  } catch (error) {
-    console.error('Error during streaming response:', error.message);
-  }
+  };
+  const autoFunc = await gemini.functionCalling.generateAuto('What is the weather in Paris?', [weatherFn]);
+  console.log('Auto function calling:', autoFunc.text, autoFunc.functionCalls);
+
+  // Demonstrate file upload + wait (requires a sample file)
+  // const file = await gemini.files.uploadAndWait({ file: 'examples/data/sample.pdf', config: { mimeType: 'application/pdf' } });
+  // console.log('Uploaded and processed file:', file);
 }
 
-/**
- * Run all examples
- */
-async function runExamples() {
-  try {
-    await basicTextGeneration();
-    await textGenerationWithInstructions();
-    await chatConversation();
-    await streamingResponse();
-    
-    console.log('\nAll examples completed successfully!');
-  } catch (error) {
-    console.error('Error running examples:', error);
-  }
-}
-
-// Run all examples
-runExamples(); 
+quickstart().catch(console.error); 
