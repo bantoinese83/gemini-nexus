@@ -703,4 +703,8 @@ console.log('✅ All API routes patched with Node.js runtime!');
 
 **After running the script, restart your dev server.**
 
-For more details, see the [Next.js documentation on API route runtimes](https://nextjs.org/docs/app/building-your-application/routing/route-handlers#opting-into-nodejs-runtime). 
+For more details, see the [Next.js documentation on API route runtimes](https://nextjs.org/docs/app/building-your-application/routing/route-handlers#opting-into-nodejs-runtime).
+
+## Services Documentation
+
+For detailed instructions on how to use the Gemini SDK services, please refer to the [services README](src/services/README.md).
