@@ -21,21 +21,21 @@ export class ChatService {
    * Create a new chat session
    * 
    * @param config - Generation configuration options
-   * @param history - Initial chat history
+   * @param options - Additional options (e.g., initial chat history)
    * @returns Chat session object
    * 
    * @example
    * ```typescript
-   * const chat = gemini.chat.createChat();
+   * const chat = gemini.chat.createChat(undefined, { history: myHistory });
    * const response1 = await chat.sendMessage("Hello");
    * console.log(response1.text);
    * ```
    */
-  createChat(config?: GenerationConfig, history?: ChatMessage[]) {
+  createChat(config?: GenerationConfig, options?: { history?: ChatMessage[] }) {
     const ai = new GoogleGenAI({ apiKey: this.client.apiKey });
     const chat = ai.chats.create({
       model: config?.model || this.defaultModel,
-      history: history || [],
+      history: options?.history || [],
     });
     return {
       sendMessage: async (message: string) => {
@@ -77,7 +77,7 @@ export class ChatService {
     history?: ChatMessage[], 
     config?: GenerationConfig
   ): Promise<GenerationResponse> {
-    const chat = this.createChat(config, history);
+    const chat = this.createChat(config, { history });
     return chat.sendMessage(message);
   }
 
@@ -131,6 +131,6 @@ export class ChatService {
       }]
     };
     
-    return this.createChat(fullConfig, history);
+    return this.createChat(fullConfig, { history });
   }
 } 
