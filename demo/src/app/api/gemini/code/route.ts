@@ -9,8 +9,8 @@ export async function POST(req: NextRequest) {
   }
   try {
     const gemini = new GeminiClient(apiKey);
-    const result = await gemini.textGeneration.generateAuto(prompt);
-    return NextResponse.json({ text: result.text });
+    const result = await gemini.codeExecution.executeAuto(prompt);
+    return NextResponse.json(result);
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Unknown error' }, { status: 500 });
   }

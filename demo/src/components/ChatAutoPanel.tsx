@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from 'react';
 
 interface ChatMessage {
@@ -11,7 +13,9 @@ export function ChatAutoPanel({ apiKey }: { apiKey: string }) {
   const [loading, setLoading] = useState(false);
 
   const handleSend = async () => {
-    if (!message.trim()) return;
+    if (!message.trim()) {
+      return;
+    }
     setLoading(true);
     const res = await fetch('/api/gemini/chat', {
       method: 'POST',

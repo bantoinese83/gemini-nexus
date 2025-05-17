@@ -645,4 +645,62 @@ If you need help with using Gemini Nexus, here are some resources:
 - **Questions**: For questions about usage, you can [start a discussion](https://github.com/bantoinese83/gemini-nexus/discussions) on GitHub
 - **Contributing**: Contributions are welcome! Please read our [contributing guidelines](https://github.com/bantoinese83/gemini-nexus/blob/main/CONTRIBUTING.md) before submitting PRs
 
-For commercial support options or partnerships, please reach out via email at B.Antoine.SE@Gmail.com. 
+For commercial support options or partnerships, please reach out via email at B.Antoine.SE@Gmail.com.
+
+## Next.js API Route Compatibility
+
+If you use the gemini-nexus SDK in Next.js API routes, you must ensure your API routes run in the Node.js runtime (not the Edge runtime). This is because the SDK uses Node.js modules (like `fs`, `path`, etc.), which are not available in the Edge runtime.
+
+**To do this, add the following line to the top of every API route file that uses Node.js modules:**
+
+```ts
+export const runtime = "nodejs";
+```
+
+### Automate with Patch Script
+
+To avoid adding this manually to every file, you can use the provided `patch-api-runtime.js` script to automatically add the export to all your API route files:
+
+1. Make sure `patch-api-runtime.js` is in your project root (see below for script contents).
+2. Run:
+
+```sh
+node patch-api-runtime.js
+```
+
+This will add `export const runtime = "nodejs";` to the top of every `route.ts` file under `demo/src/app/api/gemini/` if not already present.
+
+**Example script:**
+```js
+const fs = require('fs');
+const path = require('path');
+
+const apiRoot = path.join(__dirname, 'demo/src/app/api/gemini');
+
+function patchFile(filePath) {
+  let content = fs.readFileSync(filePath, 'utf8');
+  if (!content.includes('export const runtime = "nodejs";')) {
+    content = 'export const runtime = "nodejs";\n' + content;
+    fs.writeFileSync(filePath, content, 'utf8');
+    console.log(`Patched: ${filePath}`);
+  }
+}
+
+function walk(dir) {
+  fs.readdirSync(dir, { withFileTypes: true }).forEach(entry => {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walk(fullPath);
+    } else if (entry.isFile() && entry.name === 'route.ts') {
+      patchFile(fullPath);
+    }
+  });
+}
+
+walk(apiRoot);
+console.log('✅ All API routes patched with Node.js runtime!');
+```
+
+**After running the script, restart your dev server.**
+
+For more details, see the [Next.js documentation on API route runtimes](https://nextjs.org/docs/app/building-your-application/routing/route-handlers#opting-into-nodejs-runtime). 

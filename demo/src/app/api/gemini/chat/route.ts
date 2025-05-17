@@ -1,3 +1,4 @@
+export const runtime = "nodejs";
 import GeminiClient from 'gemini-nexus';
 import { NextRequest, NextResponse } from 'next/server';
 

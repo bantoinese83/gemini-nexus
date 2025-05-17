@@ -1,6 +1,6 @@
 {
   "name": "gemini-nexus",
-  "version": "0.1.0-alpha.6",
+  "version": "0.1.1",
   "description": "Comprehensive SDK for Google's Gemini API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
